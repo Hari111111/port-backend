@@ -5,10 +5,16 @@ const generateToken = (res, userId) => {
         expiresIn: '30d',
     });
 
+    const isProduction = process.env.NODE_ENV !== 'development';
+
     res.cookie('jwt', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
-        sameSite: 'strict', // Prevent CSRF attacks
+        // In production (Vercel cross-origin), cookies MUST be:
+        //   secure: true  →  only sent over HTTPS
+        //   sameSite: 'none'  →  allows cross-origin sending
+        // In development (localhost), sameSite: 'lax' works fine
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 };

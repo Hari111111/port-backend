@@ -23,10 +23,35 @@ const initDB = async () => {
     }
 };
 
-// CORS
+// ─── Allowed Origins ──────────────────────────────────────────────────────────
+// Add any new Vercel deployment URLs here
+const allowedOrigins = [
+    // Local development
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    // Production — admin panel on Vercel (update with your actual admin URL)
+    "https://portfolieo-five.vercel.app",
+    "https://port-admin.vercel.app",
+    // Allow any *.vercel.app subdomain for preview deployments
+];
+
 app.use(cors({
-    origin: ["http://localhost:3002", "https://portfolieo-five.vercel.app"],
-    credentials: true,
+    origin: (origin, callback) => {
+        // Allow requests with no origin (curl, Postman, mobile apps)
+        if (!origin) return callback(null, true);
+
+        if (
+            allowedOrigins.includes(origin) ||
+            // Allow all Vercel preview deployments automatically
+            /^https:\/\/[\w-]+(\.vercel\.app)$/.test(origin)
+        ) {
+            return callback(null, true);
+        }
+
+        callback(new Error(`CORS blocked: ${origin} is not allowed`));
+    },
+    credentials: true, // Required for cross-origin cookies
 }));
 
 app.use(express.json());
@@ -42,7 +67,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/projects", projectRoutes);
 
-// ✅ THIS IS IMPORTANT FOR VERCEL
+// ✅ THIS IS IMPORTANT FOR VERCEL — export as serverless handler
 export default async function handler(req, res) {
     await initDB();
     return app(req, res);
