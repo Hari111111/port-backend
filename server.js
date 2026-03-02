@@ -41,8 +41,8 @@ app.use(cors({
 }));
 
 // Explicitly handle CORS preflight OPTIONS requests
-// Vercel sometimes intercepts OPTIONS before reaching Express — this ensures they're handled
-app.options("*", cors({
+// Express 5 requires "/{*path}" instead of bare "*" (path-to-regexp v8 breaking change)
+app.options("/{*path}", cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
         if (
