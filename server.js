@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 
 import userRoutes from "./routes/userRoutes.js";
@@ -13,45 +14,44 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Important: connect DB inside handler-safe area
-let isConnected = false;
+// ─── DB Connection ────────────────────────────────────────────────────────────
+// Use mongoose.connection.readyState instead of a boolean flag.
+// readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+// This is reliable across serverless cold/warm starts on Vercel.
 
 const initDB = async () => {
-    if (!isConnected) {
-        await connectDB();
-        isConnected = true;
+    // 0 = disconnected, only connect when not already connected or connecting
+    if (mongoose.connection.readyState === 0) {
+        try {
+            await connectDB();
+        } catch (err) {
+            console.error("❌ MongoDB connection failed:", err.message);
+            throw err; // bubble up so the request fails fast instead of buffering
+        }
     }
 };
 
-// ─── Allowed Origins ──────────────────────────────────────────────────────────
-// Add any new Vercel deployment URLs here
+// ─── CORS ────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
-    // Local development
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
-    // Production — admin panel on Vercel (update with your actual admin URL)
     "https://portfolieo-five.vercel.app",
     "https://port-admin.vercel.app",
-    // Allow any *.vercel.app subdomain for preview deployments
 ];
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (curl, Postman, mobile apps)
         if (!origin) return callback(null, true);
-
         if (
             allowedOrigins.includes(origin) ||
-            // Allow all Vercel preview deployments automatically
             /^https:\/\/[\w-]+(\.vercel\.app)$/.test(origin)
         ) {
             return callback(null, true);
         }
-
         callback(new Error(`CORS blocked: ${origin} is not allowed`));
     },
-    credentials: true, // Required for cross-origin cookies
+    credentials: true,
 }));
 
 app.use(express.json());
@@ -67,22 +67,27 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/projects", projectRoutes);
 
-// ✅ Vercel serverless handler — DB is connected per-request (lazy)
+// ─── Vercel Serverless Export ─────────────────────────────────────────────────
+// On Vercel every request goes through this handler.
+// We await initDB() each time — Mongoose deduplicates the connection internally.
 export default async function handler(req, res) {
     await initDB();
     return app(req, res);
 }
 
-// ✅ Local development — connect DB FIRST, then start the HTTP server
-// Without this, all Mongoose queries buffer forever → timeout error
-if (process.env.NODE_ENV === 'local') {
-    initDB().then(() => {
-        const PORT = process.env.PORT || 5000;
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on http://localhost:${PORT}`);
+// ─── Local Development Server ─────────────────────────────────────────────────
+// NODE_ENV=development in .env → connect DB first, then listen.
+// Not 'local' — the .env file already sets NODE_ENV=development.
+if (process.env.NODE_ENV === "development") {
+    initDB()
+        .then(() => {
+            const PORT = process.env.PORT || 5000;
+            app.listen(PORT, () => {
+                console.log(`🚀 Server running on http://localhost:${PORT}`);
+            });
+        })
+        .catch((err) => {
+            console.error("❌ Failed to start server:", err.message);
+            process.exit(1);
         });
-    }).catch((err) => {
-        console.error('❌ Failed to connect to MongoDB:', err.message);
-        process.exit(1);
-    });
 }
