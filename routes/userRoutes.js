@@ -1,7 +1,7 @@
 import express from 'express';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
-// import { protect } from '../middleware/authMiddleware.js'; 
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -11,19 +11,22 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    try {
+        const user = await User.findOne({ email });
 
-    if (user && (await user.matchPassword(password))) {
-        generateToken(res, user._id);
-
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            isAdmin: user.isAdmin,
-        });
-    } else {
-        res.status(401).json({ message: 'Invalid email or password' });
+        if (user && (await user.matchPassword(password))) {
+            generateToken(res, user._id);
+            res.json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isAdmin: user.isAdmin,
+            });
+        } else {
+            res.status(401).json({ message: 'Invalid email or password' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 
@@ -32,29 +35,30 @@ router.post('/login', async (req, res) => {
 // @access  Public
 router.post('/', async (req, res) => {
     const { name, email, password } = req.body;
+    console.log(name, email, password);
 
-    const userExists = await User.findOne({ email });
+    try {
+        const userExists = await User.findOne({ email });
 
-    if (userExists) {
-        return res.status(400).json({ message: 'User already exists' });
-    }
+        if (userExists) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
 
-    const user = await User.create({
-        name,
-        email,
-        password,
-    });
+        const user = await User.create({ name, email, password });
 
-    if (user) {
-        generateToken(res, user._id);
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            isAdmin: user.isAdmin,
-        });
-    } else {
-        res.status(400).json({ message: 'Invalid user data' });
+        if (user) {
+            generateToken(res, user._id);
+            res.status(201).json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isAdmin: user.isAdmin,
+            });
+        } else {
+            res.status(400).json({ message: 'Invalid user data' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 
@@ -62,28 +66,43 @@ router.post('/', async (req, res) => {
 // @route   POST /api/users/logout
 // @access  Public
 router.post('/logout', (req, res) => {
+    const isProduction = process.env.NODE_ENV !== 'development';
+
+    // Clear cookie using the SAME flags that were set when creating it —
+    // otherwise browsers won't remove it
     res.cookie('jwt', '', {
         httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         expires: new Date(0),
     });
+
     res.status(200).json({ message: 'Logged out successfully' });
 });
 
-// @desc    Get user profile
-// @route   GET /api/users/profile
-// @access  Public (Protection removed)
-router.get('/profile', async (req, res) => {
-    // Mock user for now or fetch specific user
-    // Since no auth, can't get req.user. returning mock or disabled.
-    res.status(501).json({ message: 'Profile not available without auth' });
+// @desc    Get current logged-in user info (validates JWT cookie)
+// @route   GET /api/users/me
+// @access  Protected
+router.get('/me', protect, async (req, res) => {
+    const user = req.user;
+    if (user) {
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isAdmin: user.isAdmin,
+        });
+    } else {
+        res.status(404).json({ message: 'User not found' });
+    }
 });
 
 // @desc    Get all users
 // @route   GET /api/users
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Protected (admin only)
+router.get('/', protect, async (req, res) => {
     try {
-        const users = await User.find({});
+        const users = await User.find({}).select('-password');
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: error.message });

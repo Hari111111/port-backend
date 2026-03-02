@@ -67,8 +67,22 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/projects", projectRoutes);
 
-// ✅ THIS IS IMPORTANT FOR VERCEL — export as serverless handler
+// ✅ Vercel serverless handler — DB is connected per-request (lazy)
 export default async function handler(req, res) {
     await initDB();
     return app(req, res);
+}
+
+// ✅ Local development — connect DB FIRST, then start the HTTP server
+// Without this, all Mongoose queries buffer forever → timeout error
+if (process.env.NODE_ENV === 'local') {
+    initDB().then(() => {
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on http://localhost:${PORT}`);
+        });
+    }).catch((err) => {
+        console.error('❌ Failed to connect to MongoDB:', err.message);
+        process.exit(1);
+    });
 }

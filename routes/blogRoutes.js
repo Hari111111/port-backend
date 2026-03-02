@@ -33,6 +33,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/blogs
 router.post('/', async (req, res) => {
     const { title, slug, image, category, description, content, tags } = req.body;
+    console.log(req.body);
 
     try {
         const blog = new Blog({
