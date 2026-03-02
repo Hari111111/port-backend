@@ -16,7 +16,7 @@ const app = express();
 
 // CORS Configuration
 app.use(cors({
-    origin: 'http://localhost:3000', // Frontend URL
+    origin: ['http://localhost:3002', 'https://portfolieo-five.vercel.app'], // Frontend URL
     credentials: true, // Allow cookies
 }));
 
@@ -35,4 +35,4 @@ app.use('/api/projects', projectRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, console.log(`Server running on port ${PORT}`));
+// app.listen(PORT, console.log(`Server running on port ${PORT}`));
