@@ -14,24 +14,8 @@ dotenv.config();
 
 const app = express();
 
-// ─── DB Connection ────────────────────────────────────────────────────────────
-// Use mongoose.connection.readyState instead of a boolean flag.
-// readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
-// This is reliable across serverless cold/warm starts on Vercel.
-
-const initDB = async () => {
-    // 0 = disconnected, only connect when not already connected or connecting
-    if (mongoose.connection.readyState === 0) {
-        try {
-            await connectDB();
-        } catch (err) {
-            console.error("❌ MongoDB connection failed:", err.message);
-            throw err; // bubble up so the request fails fast instead of buffering
-        }
-    }
-};
-
-// ─── CORS ────────────────────────────────────────────────────────────────────
+// ─── CORS — MUST be the very first middleware ─────────────────────────────────
+// If DB fails, CORS headers are still present so the browser can read the error.
 const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
@@ -42,6 +26,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
+        // Allow no-origin requests (Postman, curl, server-to-server)
         if (!origin) return callback(null, true);
         if (
             allowedOrigins.includes(origin) ||
@@ -49,7 +34,24 @@ app.use(cors({
         ) {
             return callback(null, true);
         }
-        callback(new Error(`CORS blocked: ${origin} is not allowed`));
+        // Return false (not an Error) so Express doesn't throw — just blocks
+        return callback(null, false);
+    },
+    credentials: true,
+}));
+
+// Explicitly handle CORS preflight OPTIONS requests
+// Vercel sometimes intercepts OPTIONS before reaching Express — this ensures they're handled
+app.options("*", cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+            allowedOrigins.includes(origin) ||
+            /^https:\/\/[\w-]+(\.vercel\.app)$/.test(origin)
+        ) {
+            return callback(null, true);
+        }
+        return callback(null, false);
     },
     credentials: true,
 }));
@@ -58,8 +60,33 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// ─── DB Middleware ────────────────────────────────────────────────────────────
+// Runs AFTER CORS so every response (including DB errors) has CORS headers.
+// This is the critical fix for Vercel — if initDB() was called in the handler
+// before app(req,res), a DB crash stripped CORS headers causing "Failed to fetch".
+
+const initDB = async () => {
+    if (mongoose.connection.readyState === 0) {
+        await connectDB();
+    }
+};
+
+app.use(async (req, res, next) => {
+    try {
+        await initDB();
+        next();
+    } catch (err) {
+        console.error("❌ DB connection failed:", err.message);
+        res.status(500).json({
+            message: "Database connection failed. Check MONGO_URI in Vercel environment variables.",
+        });
+    }
+});
+
+// ─── Routes ──────────────────────────────────────────────────────────────────
+
 app.get("/", (req, res) => {
-    res.send("API is running...");
+    res.json({ message: "API is running ✅", db: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
 });
 
 app.use("/api/users", userRoutes);
@@ -67,17 +94,18 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/projects", projectRoutes);
 
-// ─── Vercel Serverless Export ─────────────────────────────────────────────────
-// On Vercel every request goes through this handler.
-// We await initDB() each time — Mongoose deduplicates the connection internally.
-export default async function handler(req, res) {
-    await initDB();
-    return app(req, res);
-}
+// ─── Global Error Handler ─────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+    console.error("Unhandled error:", err.message);
+    res.status(500).json({ message: err.message || "Internal server error" });
+});
 
-// ─── Local Development Server ─────────────────────────────────────────────────
-// NODE_ENV=development in .env → connect DB first, then listen.
-// Not 'local' — the .env file already sets NODE_ENV=development.
+// ─── Vercel Serverless Export ─────────────────────────────────────────────────
+// Export app directly — Vercel treats Express apps as valid (req, res) handlers.
+// DB init is now a middleware inside app, so CORS always runs before it.
+export default app;
+
+// ─── Local Development ────────────────────────────────────────────────────────
 if (process.env.NODE_ENV === "development") {
     initDB()
         .then(() => {
@@ -87,7 +115,7 @@ if (process.env.NODE_ENV === "development") {
             });
         })
         .catch((err) => {
-            console.error("❌ Failed to start server:", err.message);
+            console.error("❌ Failed to start:", err.message);
             process.exit(1);
         });
 }
