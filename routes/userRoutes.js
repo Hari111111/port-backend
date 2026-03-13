@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import { protect } from '../middleware/authMiddleware.js';
+import Profile from '../models/Profile.js';
 
 const router = express.Router();
 
@@ -109,4 +110,12 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
+router.get('/portfolio', async (req, res) => {
+    try {
+        const user = await Profile.findOne().lean()
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+})
 export default router;

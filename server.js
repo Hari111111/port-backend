@@ -9,6 +9,8 @@ import userRoutes from "./routes/userRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import serviceRoutes from "./routes/serviceRoutes.js";
 
 dotenv.config();
 
@@ -20,8 +22,10 @@ const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
+    "http://localhost:3003",
     "https://portfolieo-five.vercel.app",
     "https://port-admin.vercel.app",
+    "http://localhost:5000",
 ];
 
 app.use(cors({
@@ -93,6 +97,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/services", serviceRoutes);
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
