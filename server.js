@@ -11,6 +11,7 @@ import profileRoutes from "./routes/profileRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
+import questionRoutes from "./routes/questionRoutes.js";
 
 dotenv.config();
 
@@ -99,6 +100,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/questions", questionRoutes);
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
