@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
         if (category) {
             query.category = category;
         }
-        const questions = await Question.find(query).sort({ createdAt: -1 });
+        const questions = await Question.find(query).sort({ priority: 1, createdAt: -1 });
         res.status(200).json({ success: true, data: questions });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
