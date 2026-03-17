@@ -4,9 +4,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import connectDB from "./config/db.js";
-import { Server } from "socket.io";
-import http from "http";
-
 import userRoutes from "./routes/userRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
@@ -20,30 +17,6 @@ import resumeRoutes from "./routes/resumeRoutes.js";
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*", // In production, you might want to restrict this
-        methods: ["GET", "POST"]
-    }
-});
-
-// Socket.io Logic
-io.on("connection", (socket) => {
-    console.log("A user connected:", socket.id);
-
-    socket.on("send_message", (data) => {
-        // Broadcast message to everyone including sender
-        io.emit("receive_message", {
-            ...data,
-            timestamp: new Date().toISOString()
-        });
-    });
-
-    socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id);
-    });
-});
 
 // ─── CORS — MUST be the very first middleware ─────────────────────────────────
 // If DB fails, CORS headers are still present so the browser can read the error.
@@ -148,7 +121,7 @@ if (process.env.NODE_ENV === "development") {
     initDB()
         .then(() => {
             const PORT = process.env.PORT || 5000;
-            server.listen(PORT, () => {
+            app.listen(PORT, () => {
                 console.log(`🚀 Server running on http://localhost:${PORT}`);
             });
         })
