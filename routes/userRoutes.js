@@ -14,6 +14,7 @@ router.post('/login', async (req, res) => {
 
     try {
         const user = await User.findOne({ email });
+        console.log("user", user);
 
         if (user && (await user.matchPassword(password))) {
             generateToken(res, user._id);

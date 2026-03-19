@@ -10,16 +10,16 @@ const InterviewQuestionSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add an answer']
   },
-  category: {
+  category: [{
     type: String,
     required: [true, 'Please add a category'],
     enum: ['Frontend', 'Backend', 'Database', 'DevOps', 'General', 'Programming', 'Other']
-  },
-  language: {
+  }],
+  language: [{
     type: String,
-    default: 'JavaScript',
+    default: ['JavaScript'],
     enum: ['JavaScript', 'TypeScript', 'React.js', 'Next.js', 'Node.js', 'NestJS', 'MongoDB', 'PostgreSQL', 'Python', 'Java', 'C++', 'PHP', 'HTML/CSS', 'SQL', 'Other']
-  },
+  }],
   type: {
     type: String,
     required: [true, 'Please add a question type'],

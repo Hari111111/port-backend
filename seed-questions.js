@@ -8,8 +8,8 @@ const questions = [
   {
     question: "What is React.js?",
     answer: "React is a JavaScript library for building user interfaces, especially for single-page applications.",
-    category: "Frontend",
-    language: "React.js",
+    category: ["Frontend"],
+    language: ["React.js"],
     type: "Theory",
     difficulty: "Easy",
     priority: 1
@@ -17,8 +17,8 @@ const questions = [
   {
     question: "What is Virtual DOM?",
     answer: "The Virtual DOM is a lightweight copy of the actual DOM in memory, used by React to optimize rendering performance.",
-    category: "Frontend",
-    language: "React.js",
+    category: ["Frontend"],
+    language: ["React.js"],
     type: "Short",
     difficulty: "Medium",
     priority: 2
@@ -26,8 +26,8 @@ const questions = [
   {
     question: "Which of the following is used to manage state in a React component?",
     answer: "useState",
-    category: "Frontend",
-    language: "React.js",
+    category: ["Frontend"],
+    language: ["React.js"],
     type: "MCQ",
     options: ["useState", "useEffect", "useMemo", "useRef"],
     difficulty: "Easy",
@@ -36,8 +36,8 @@ const questions = [
   {
     question: "What is Node.js?",
     answer: "Node.js is a cross-platform, open-source JavaScript runtime environment that executes JavaScript code outside a web browser.",
-    category: "Backend",
-    language: "Node.js",
+    category: ["Backend"],
+    language: ["Node.js"],
     type: "Short",
     difficulty: "Easy",
     priority: 1
@@ -49,8 +49,8 @@ const seedQuestions = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('Connected to MongoDB');
         
-        await Question.deleteMany();
-        console.log('Deleted existing questions');
+        // await Question.deleteMany();
+        // console.log('Deleted existing questions');
         
         await Question.insertMany(questions);
         console.log('Successfully seeded questions!');
