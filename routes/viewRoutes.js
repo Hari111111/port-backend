@@ -6,14 +6,24 @@ const router = express.Router();
 // Record/Increment a view
 router.post('/record', async (req, res) => {
     try {
-        const { pagePath } = req.body;
+        const { pagePath, browser, os, device } = req.body;
         if (!pagePath) {
             return res.status(400).json({ message: 'pagePath is required' });
         }
 
+        const updates = { 
+            $inc: { count: 1 },
+            $set: { lastActive: new Date() }
+        };
+
+        // Increment dynamic keys for browser, OS, and device if provided
+        if (browser) updates.$inc[`browsers.${browser}`] = 1;
+        if (os) updates.$inc[`operatingSystems.${os}`] = 1;
+        if (device) updates.$inc[`devices.${device}`] = 1;
+
         const pageView = await PageView.findOneAndUpdate(
             { pagePath },
-            { $inc: { count: 1 } },
+            updates,
             { upsert: true, new: true }
         );
 

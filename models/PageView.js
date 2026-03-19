@@ -9,6 +9,25 @@ const pageViewSchema = new mongoose.Schema({
     count: {
         type: Number,
         default: 0
+    },
+    browsers: {
+        type: Map,
+        of: Number,
+        default: {}
+    },
+    operatingSystems: {
+        type: Map,
+        of: Number,
+        default: {}
+    },
+    devices: {
+        type: Map,
+        of: Number,
+        default: {}
+    },
+    lastActive: {
+        type: Date,
+        default: Date.now
     }
 }, { timestamps: true });
 
