@@ -13,6 +13,7 @@ import serviceRoutes from "./routes/serviceRoutes.js";
 import questionRoutes from "./routes/questionRoutes.js";
 import viewRoutes from "./routes/viewRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
@@ -104,6 +105,7 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/views", viewRoutes);
 app.use("/api/resume", resumeRoutes);
+app.use("/api/ai", aiRoutes);
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
