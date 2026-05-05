@@ -7,6 +7,7 @@ const profileSchema = mongoose.Schema({
     phone: { type: String },
     location: { type: String },
     about: { type: String }, // Bio/Summary
+    profileImage: { type: String },
     resumeLink: { type: String }, // URL to PDF
 
     // Social Links

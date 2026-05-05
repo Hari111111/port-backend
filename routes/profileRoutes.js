@@ -17,6 +17,7 @@ router.get('/', async (req, res) => {
                 name: 'Your Name',
                 title: 'Your Title',
                 email: 'you@example.com',
+                profileImage: '',
                 skills: ['Skill 1', 'Skill 2']
             });
             await profile.save();
@@ -44,6 +45,7 @@ router.put('/', async (req, res) => {
             profile.phone = req.body.phone || profile.phone;
             profile.location = req.body.location || profile.location;
             profile.about = req.body.about || profile.about;
+            profile.profileImage = req.body.profileImage || profile.profileImage;
             profile.resumeLink = req.body.resumeLink || profile.resumeLink;
 
             if (req.body.socials) profile.socials = req.body.socials;

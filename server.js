@@ -29,6 +29,7 @@ const allowedOrigins = [
     "https://portfolieo-five.vercel.app",
     "https://port-admin.vercel.app",
     "http://localhost:5000",
+    "http://localhost:3004"
 ];
 
 app.use(cors({

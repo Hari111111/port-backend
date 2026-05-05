@@ -1,5 +1,6 @@
 import express from 'express';
 import User from '../models/User.js';
+import Resume from '../models/Resume.js';
 import generateToken from '../utils/generateToken.js';
 import { protect } from '../middleware/authMiddleware.js';
 import Profile from '../models/Profile.js';
@@ -104,8 +105,30 @@ router.get('/me', protect, async (req, res) => {
 // @access  Protected (admin only)
 router.get('/', protect, async (req, res) => {
     try {
-        const users = await User.find({}).select('-password');
-        res.json(users);
+        const users = await User.find({}).select('-password').lean();
+        const resumes = await Resume.find({}).select('user data updatedAt').lean();
+
+        const resumeMap = new Map(
+            resumes.map((resume) => [
+                String(resume.user),
+                {
+                    updatedAt: resume.updatedAt,
+                    personalInfo: resume.data?.personalInfo || {},
+                    skills: Array.isArray(resume.data?.skills) ? resume.data.skills : [],
+                    experience: Array.isArray(resume.data?.experience) ? resume.data.experience : [],
+                    education: Array.isArray(resume.data?.education) ? resume.data.education : [],
+                    projects: Array.isArray(resume.data?.projects) ? resume.data.projects : [],
+                    languages: Array.isArray(resume.data?.languages) ? resume.data.languages : [],
+                },
+            ])
+        );
+
+        const enrichedUsers = users.map((user) => ({
+            ...user,
+            resume: resumeMap.get(String(user._id)) || null,
+        }));
+
+        res.json(enrichedUsers);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
